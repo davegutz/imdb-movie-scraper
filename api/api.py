@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pymongo
 import flask
-from flask import request, jsonify,render_template,Response,redirect
+from flask import request, jsonify, render_template, Response, redirect
 from flask import send_file
 import requests
 from bs4 import BeautifulSoup
@@ -14,22 +14,23 @@ from tvseries_scraper import scrapeTv
 from search_by_titles import scrapelist_title
 from download_more_images_by_movie_id import startDownload as download_images
 import config
+import shutil
 
 
-def scrapeVidPage(video_id) :
-    video_url= "https://www.imdb.com/video/"+video_id
+def scrapeVidPage(video_id):
+    video_url = "https://www.imdb.com/video/"+video_id
     print(video_url)
     r = requests.get(url=video_url)
     soup = BeautifulSoup(r.text, 'html.parser')
-    script =soup.find("script",{'type': 'application/json'})
+    script = soup.find("script", {'type': 'application/json'})
     json_object = json.loads(script.string)
     # print(json_object["props"]["pageProps"]["videoPlaybackData"]["video"]["playbackURLs"])
     videos = json_object["props"]["pageProps"]["videoPlaybackData"]["video"]["playbackURLs"]
     # links video quality order auto,1080,720
 
-    for video in videos[1:] :
+    for video in videos[1:]:
         video_link = video["url"]
-        print("video_link",video_link)  
+        print("video_link", video_link)  
         break
     return videos[1:]
 
@@ -40,18 +41,18 @@ db = client["movie-db"]
 collection = db["teluguImdb"]
 
 
-def findByName(movie) :
-    movies_cursor= collection.find(({'name': re.compile(movie, re.IGNORECASE)})).limit(25)
-    movie=[]
-    for m in movies_cursor :
+def findByName(movie):
+    movies_cursor = collection.find(({'name': re.compile(movie, re.IGNORECASE)})).limit(25)
+    movie = []
+    for m in movies_cursor:
         movie.append(m) 
     return movie
 
 
-def groupByGenre(genre) :
-    movies_cursor= collection.find({'genre' : { "$in":[ genre ]}}).limit(20)
-    movie=[]
-    for m in movies_cursor :
+def groupByGenre(genre):
+    movies_cursor = collection.find({'genre': {"$in": [genre]}}).limit(20)
+    movie = []
+    for m in movies_cursor:
         movie.append(m) 
     return movie
 
@@ -61,9 +62,9 @@ def searchById(id):
     return movie
 
 
-def getImages(id) :
+def getImages(id):
     movie = collection.find_one(id)
-    if 'images' in movie :
+    if 'images' in movie:
         return movie['images']
     return {}    
 
@@ -84,7 +85,7 @@ def api():
 
 @app.route('/api/movie/<movie>', methods=['GET'])
 def movie(movie):
-    print("+++++++++",movie,flush=True)
+    print("+++++++++", movie, flush=True)
     movies = findByName(movie)
     return jsonify(movies)
 
@@ -110,69 +111,69 @@ def SearchImagesById(id):
 @app.route('/api/livescraper/movie/<id>', methods=['GET'])
 def ScrapMovieNow(id):
     data = scrapIMDB(id)
-    data["_id"]=id
+    data["_id"] = id
     return jsonify(data)
 
 
 @app.route('/api/livescraper/reviews/<id>', methods=['GET'])
 def scrapeReviewsNow(id):
-    #sort=helpfulnessScore&dir=desc&ratingFilter=0
+    # sort=helpfulnessScore&dir=desc&ratingFilter=0
     sort = request.args.get('sort') 
-    if sort == None :
-        sort="totalVotes"    
+    if sort is None:
+        sort = "totalVotes"
     
     ratingFilter = request.args.get('ratingFilter')
-    if ratingFilter == None :
-        ratingFilter=0   
+    if ratingFilter is None:
+        ratingFilter = 0   
         
     dir = request.args.get('dir')
-    if dir == None :
-        dir="desc"  
-    data = scrapeReviews(id,sort,ratingFilter,dir)
+    if dir is None:
+        dir = "desc"  
+    data = scrapeReviews(id, sort, ratingFilter, dir)
     
-    data["_id"]=id
+    data["_id"] = id
     return jsonify(data)
 
 
 @app.route('/api/livescraper/trendingIndia/<lan>', methods=['GET'])
 def trendingIndia(lan):
-    data =trendingMovies(lan)
+    data = trendingMovies(lan)
     return jsonify(data)
 
 
 @app.route('/api/livescraper/tv/<id>', methods=['GET'])
 def scrapeTvshow(id):
-    data =scrapeTv(id)
+    data = scrapeTv(id)
     return jsonify(data)
 
 
 @app.route('/api/livescraper/title/<title>', methods=['GET'])
 def scrapeSearchByTitle(title):
     count = request.args.get('count') 
-    #count=int(count)
-    if count == None :
+    # count = int(count)
+    if count is None:
         count = 30
-    data = scrapelist_title(title,count)
+    data = scrapelist_title(title, count)
     return jsonify(data)
 
 
 @app.route('/api/livescraper/download/reviews/<id>', methods=['GET'])
 def scrapeReviewsNowAndDownload(id):
-    #sort=helpfulnessScore&dir=desc&ratingFilter=0
+    # sort = helpfulnessScore&dir=desc&ratingFilter=0
     sort = request.args.get('sort') 
-    if sort == None :
-        sort="totalVotes"    
+    if sort is None:
+        sort = "totalVotes"
     
     ratingFilter = request.args.get('ratingFilter')
-    if ratingFilter == None :
-        ratingFilter=0   
+    if ratingFilter is None:
+        ratingFilter = 0
         
     dir = request.args.get('dir')
-    if dir == None :
-        dir="desc"  
-    data = scrapeReviews(id,sort,ratingFilter,dir)
+    if dir is None:
+        dir = "desc"
+    data = scrapeReviews(id, sort, ratingFilter, dir)
     
-    data["_id"]=id
+    data["_id"] = id
 
     return Response(
         json.dumps(data),
@@ -183,8 +184,8 @@ def scrapeReviewsNowAndDownload(id):
 
 @app.route('/api/livescraper/download/tv/<id>', methods=['GET'])
 def scrapeTvshowAndDownload(id):
-    data =scrapeTv(id)
-    data["_id"]=id
+    data = scrapeTv(id)
+    data["_id"] = id
 
     return Response(
         json.dumps(data),
@@ -195,19 +196,19 @@ def scrapeTvshowAndDownload(id):
 
 @app.route('/api/livescraper/download/video/<VideoId>', methods=['GET'])
 def GetVideoUrlByVideoId(VideoId):
-    Video_info =scrapeVidPage(VideoId)
-    return {"Video_info" :Video_info }
+    Video_info = scrapeVidPage(VideoId)
+    return {"Video_info": Video_info}
 
 
-@app.route('/api/livescraper/download/video_file/', methods=['GET','POST'])
+@app.route('/api/livescraper/download/video_file/', methods=['GET', 'POST'])
 def GetVideoFileByVideoId():
     args = request.args
     if request.method == "POST":
         VideoId = request.form.get("videoId")
-    else :
+    else:
         VideoId = args.get("videoId")
     try:
-        Video_info =scrapeVidPage(VideoId)
+        Video_info = scrapeVidPage(VideoId)
         video_link = Video_info[1]["url"]
         r = requests.get(video_link)
         return redirect(video_link)
@@ -215,20 +216,17 @@ def GetVideoFileByVideoId():
         return f'''<h2>Video does not  exist </h2>
         <p><br> Verify here</p>
          <a href=https://www.imdb.com/video/{VideoId}>here</a>'''
-    #return send_file(r.content, mimetype='video/mp4',as_attachment=True, attachment_filename=VideoId+'.mp4')
+    # return send_file(r.content, mimetype='video/mp4',as_attachment=True, attachment_filename=VideoId+'.mp4')
 #    return data
 
 
-import shutil
-
-
-@app.route('/api/livescraper/download/images/', methods=['GET','POST'])
+@app.route('/api/livescraper/download/images/', methods=['GET', 'POST'])
 def GetImagesByMovieId():
     print("---")
     args = request.args
     if request.method == "POST":
         movie_id = request.form.get("movie_id")
-    else :
+    else:
         movie_id = args.get("movie_id")
     try:
         download_images(movie_id)
@@ -241,5 +239,6 @@ def GetImagesByMovieId():
     #     return response
     return send_file(f"{movie_id}.zip", as_attachment=True)
 
+
 if __name__ == '__main__':
-   app.run(debug=True)
+    app.run(debug=True)
