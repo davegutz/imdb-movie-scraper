@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import re
 import json
 
+
 def getMovieDetails(imdbID):
     data = {}
     
@@ -20,8 +21,6 @@ def getMovieDetails(imdbID):
     Moredata.append(jsonSourceObj)
     data["expanded"]=Moredata
 
-    
-
     #imdbId
     data["imdbID"] = imdbID
 
@@ -29,11 +28,7 @@ def getMovieDetails(imdbID):
     title = soup.find('title')
     data["title"] = title.string
 
-    
-
-
     #title Year
-
 
     #RunTime
 #    data["RunTime"]=""
@@ -47,8 +42,6 @@ def getMovieDetails(imdbID):
         data["Minutes"]=jsonSourceObj['duration']
     except :
         data["Minutes"]=""
-
-
 
     # rating
     data["ratingValue"]=""
